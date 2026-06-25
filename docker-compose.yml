@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+
+  mongo:
+    image: mongo:7
+    container_name: citizen-mongo
+
+    ports:
+      - "27017:27017"
+
+    volumes:
+      - mongo_data:/data/db
+
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+
+    container_name: citizen-backend
+
+    ports:
+      - "5000:5000"
+
+    env_file:
+      - ./backend/.env
+
+    depends_on:
+      - mongo
+
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+
+    container_name: citizen-frontend
+
+    ports:
+      - "3000:80"
+
+    depends_on:
+      - backend
+
+    restart: always
+
+volumes:
+  mongo_data:
