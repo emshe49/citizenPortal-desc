@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+
+metadata:
+  name: citizen-project
+  namespace: argocd
+
+spec:
+  description: Citizen Portal GitOps Project
+
+  sourceRepos:
+    - '*'
+
+  destinations:
+    - namespace: citizen-portal
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'

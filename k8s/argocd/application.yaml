@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: citizen-portal
+  namespace: argocd
+
+spec:
+  project: citizen-project
+
+  source:
+    repoURL: https://github.com/emshe49/citizenPortal-desc.git
+    targetRevision: main
+    path: k8s
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: citizen-portal
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+    syncOptions:
+      - CreateNamespace=true
