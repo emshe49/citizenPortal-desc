@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: frontend
+  namespace: citizen-portal
+
+spec:
+
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: frontend
+
+  template:
+
+    metadata:
+      labels:
+        app: frontend
+
+    spec:
+
+      containers:
+
+      - name: frontend
+
+        image: razaessa/citizenportal-desc-frontend:v2
+
+        ports:
+        - containerPort: 80
