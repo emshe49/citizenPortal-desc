@@ -25,7 +25,7 @@ spec:
 
       - name: frontend
 
-        image: razaessa/citizenportal-desc-frontend:latest
+        image: razaessa/citizenportal-desc-frontend:c5403d59498a54e7739f277d10abc6560d608b4b
 
         ports:
         - containerPort: 80
