@@ -25,7 +25,7 @@ spec:
 
       - name: backend
 
-        image: razaessa/citizenportal-desc-backend:latest
+        image: razaessa/citizenportal-desc-backend:ad457aa4dfe7a41603eb6fa1e3fc72565ffc792b
 
         ports:
         - containerPort: 5000
