@@ -1,4 +1,4 @@
-name: Backend CI/CD
+name: Backend GitOps CI/CD
 
 on:
   push:
@@ -6,10 +6,14 @@ on:
       - main
 
 jobs:
-
   backend:
+    # Prevent infinite loop when workflow commits deployment.yaml
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
 
     defaults:
       run:
@@ -17,49 +21,72 @@ jobs:
 
     steps:
 
+      # Checkout Repository
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Setup Node
+      # Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      # Install Dependencies
       - name: Install Dependencies
         run: npm install
 
-      - name: Login DockerHub
+      # Login to DockerHub
+      - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Image
+      # Build Docker Images
+      - name: Build Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/citizenportal-desc-backend:${{ github.sha }} .
-          docker tag ${{ secrets.DOCKER_USERNAME }}/citizenportal-desc-backend:${{ github.sha }} \
-          ${{ secrets.DOCKER_USERNAME }}/citizenportal-desc-backend:latest
+          docker build \
+            -t ${{ secrets.DOCKER_USERNAME }}/citizenportal-desc-backend:${{ github.sha }} \
+            -t ${{ secrets.DOCKER_USERNAME }}/citizenportal-desc-backend:latest .
 
-      - name: Push Image
+      # Push SHA Image
+      - name: Push SHA Image
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/citizenportal-desc-backend:${{ github.sha }}
+
+      # Push Latest Image
+      - name: Push Latest Image
+        run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/citizenportal-desc-backend:latest
 
+      # Update Kubernetes Deployment Manifest
       - name: Update Deployment Manifest
         working-directory: .
         run: |
-          sed -i "s|image: .*citizenportal-desc-backend.*|image: ${{ secrets.DOCKER_USERNAME }}/citizenportal-desc-backend:${{ github.sha }}|" k8s/backend/deployment.yaml
+          sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/citizenportal-desc-backend:${{ github.sha }}|g" k8s/backend/deployment.yaml
 
+      # Configure Git
+      - name: Configure Git
+        working-directory: .
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      # Commit Updated Manifest
       - name: Commit Manifest
         working-directory: .
         run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
           git add k8s/backend/deployment.yaml
-          git diff --cached --quiet || git commit -m "Update backend image to ${{ github.sha }}"
+          git diff --cached --quiet || git commit -m "Update backend image to ${{ github.sha }} [skip ci]"
 
+      # Push Manifest Back to GitHub
       - name: Push Manifest
         working-directory: .
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}
+          git push origin HEAD:main
+
